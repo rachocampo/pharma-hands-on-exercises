@@ -59,7 +59,7 @@ library(rio)
 2.   Read in the CDISC adsl data from the GitHub location (`https://github.com/phuse-org/phuse-scripts/raw/master/data/adam/cdisc/adsl.xpt`) and assign this to an object in R using the assignment operator `<-`. Make sure that the URL location is a character string by enclosing it in `" "`. The `rio` package has a function called `import` that reads data into R and infers the data type from the file name. The first argument of that function is `file`. Paste the file path / URL above after the `file=` argument in the code below, then run the chunk using the green arrow.
 
 ```{r read_adsl}
-adsl <- import( file = ""  )
+adsl <- import( file = "https://github.com/phuse-org/phuse-scripts/raw/master/data/adam/cdisc/adsl.xpt"  )
 adsl
 ```
 
@@ -67,7 +67,7 @@ Next filter the adsl dataset where the EFFFL variable has the value "Y" (as we d
 
 ```{r create_adsl_eff}
 adsl_eff <- adsl %>%
-  filter(  ) %>%
+  filter(EFFFL=="Y") %>%
   mutate(SEX = recode(SEX, "M" = "Male", "F" = "Female")) 
 ```
 
@@ -85,7 +85,7 @@ The {dplyr} package has a function called `summarize()` that will calculate vari
 
 ```{r}
 adsl_eff %>%
-  group_by(  ) %>% 
+  group_by(TRT01AN, TRT01A, SEX) %>% 
   summarize(mean =(mean(AGE)))
 ```
 
@@ -95,8 +95,8 @@ Notice that there are 5 decimal places outputted in the mean values. We do not o
 adsl_eff %>%
   group_by( TRT01A, TRT01AN, SEX ) %>%
   summarize(mean = (mean( AGE ) %>% 
-                      round(digits =  ) %>%
-                      format(nsmall =  ))
+                      round(digits = 1) %>%
+                      format(nsmall = 1 ))
   )
 ```
 
@@ -107,11 +107,11 @@ Using the above information, finish the code below by creating a data frame name
 ```{r}
 age_stat<- adsl_eff %>%
   group_by(TRT01AN,TRT01A,SEX) %>%
-  summarize(mean = (mean( ) %>% round(digits = 1) %>% format(nsmall=1))  ,
-            sd = (sd( ) %>% round(digits = 1) %>% format(nsmall = 1)), 
-            med = median( )  ,              
-            min = min( ), 
-            max = max( ),
+  summarize(mean = (mean(AGE) %>% round(digits = 1) %>% format(nsmall=1)) ,
+            sd = (sd(AGE) %>% round(digits = 1) %>% format(nsmall = 1)), 
+            med = median(AGE),              
+            min = min(AGE), 
+            max = max(AGE),
             n = n())
 
 age_stat
@@ -128,7 +128,7 @@ Notice that there is a space between the first parentheses and the first digit. 
 
 ```{r}
 age_stat2<-age_stat %>%
-  mutate(range_minmax= paste("(",min, ",", max, ")"))
+  mutate(range_minmax= paste(paste0("(",min), ",", paste0(max, ")")))
 
 age_stat2
 
@@ -227,7 +227,7 @@ To a function like this:
 
 ```{r, eval = FALSE}
 varSummary <- function(adsl_eff, TRT01AN, TRT01A, SEX) {
-  adsl_saf %>%
+  adsl_eff %>%
     group_by(TRT01AN,TRT01A,SEX) %>%
     summarize(mean = mean( ) %>% round(digits = 1) %>% format(nsmall=1)  ,
               sd = sd( ) %>% round(digits = 1) %>% format(nsmall = 1), 
@@ -237,6 +237,92 @@ varSummary <- function(adsl_eff, TRT01AN, TRT01A, SEX) {
               n = n())
 }
 ```
+
+```{r}
+advs <- import(file="https://github.com/phuse-org/phuse-scripts/raw/master/data/adam/cdisc/advs.xpt")
+
+advs_age_stat <- 
+  advs %>% 
+  filter(SAFFL=="Y" & PARAMCD=="WEIGHT") %>% 
+  group_by(PARAMCD, TRTAN, TRTA, SEX) %>% 
+  summarize(mean=mean(AGE) %>%  round(digits=1) %>% format(nsmall=1),
+    sd=sd(AGE) %>%  round(digits=1) %>% format(nsmall=1),
+    med=median(AGE),
+    min=min(AGE), 
+    max=max(AGE),
+    n=n()) %>% 
+  mutate(range_minmax=paste(paste0("(", min), ",", paste0(max, ")"))) %>% 
+  ungroup() %>% 
+  select("TRTA", "SEX", "n", "mean", "med", "sd", "range_minmax") %>% 
+  mutate(across(where(is.numeric), .fns = as.character)) %>%
+  pivot_longer(-c("TRTA", "SEX"), names_to="category", values_to="values") %>% 
+  mutate(SEX = case_when(SEX == "F" ~ "Female", SEX == "M" ~ "Male")) %>% 
+  mutate(category = case_when(category == "n" ~ "N",
+                              category == "med" ~ "Median", 
+                              category == "mean" ~ "Mean", 
+                              category == "sd" ~ "Std Dev", 
+                              category == "range_minmax" ~ "Range(min,max)")) %>% 
+  pivot_wider(names_from=c("TRTA","SEX"), values_from="values")
+
+advs_age_stat
+
+```
+
+```{r}
+varSummaryfcn <- function(.data=NULL, variable=NULL, param=NULL){
+  .data %>% 
+  filter(SAFFL=="Y" & PARAMCD==param) %>% 
+  group_by(PARAMCD, TRTAN, TRTA, SEX) %>% 
+  summarize(mean=mean({{variable}}) %>%  round(digits=1) %>% format(nsmall=1),
+    sd=sd({{variable}}) %>%  round(digits=1) %>% format(nsmall=1),
+    med=median({{variable}}),
+    min=min({{variable}}), 
+    max=max({{variable}}),
+    n=n()) %>% 
+  mutate(range_minmax=paste(paste0("(", min), ",", paste0(max, ")"))) %>% 
+  ungroup() %>% 
+  select("TRTA", "SEX", "n", "mean", "med", "sd", "range_minmax") %>% 
+  mutate(across(where(is.numeric), .fns = as.character)) %>%
+  pivot_longer(-c("TRTA", "SEX"), names_to="category", values_to="values") %>% 
+  mutate(SEX = case_when(SEX == "F" ~ "Female", SEX == "M" ~ "Male")) %>% 
+  mutate(category = case_when(category == "n" ~ "N",
+                              category == "med" ~ "Median", 
+                              category == "mean" ~ "Mean", 
+                              category == "sd" ~ "Std Dev", 
+                              category == "range_minmax" ~ "Range(min,max)")) %>% 
+  pivot_wider(names_from=c("TRTA","SEX"), values_from="values")
+}
+
+advs_saf %>% varSummaryfcn(AGE, "WEIGHT")
+
+```
+```{r}
+advs_age_stat <- 
+  advs %>% 
+  filter(SAFFL=="Y" & PARAMCD %in% c("HEIGHT", "WEIGHT")) %>% 
+  group_by(PARAMCD, TRTAN, TRTA, SEX) %>% 
+  summarize(mean=mean(AGE) %>%  round(digits=1) %>% format(nsmall=1),
+    sd=sd(AGE) %>%  round(digits=1) %>% format(nsmall=1),
+    med=median(AGE),
+    min=min(AGE), 
+    max=max(AGE),
+    n=n()) %>% 
+  mutate(range_minmax=paste(paste0("(", min), ",", paste0(max, ")"))) %>% 
+  ungroup() %>% 
+  select("PARAMCD", "TRTA", "SEX", "n", "mean", "med", "sd", "range_minmax") %>% 
+  mutate(across(where(is.numeric), .fns = as.character)) %>% 
+  pivot_longer(-c("PARAMCD", "TRTA", "SEX"), names_to="category", values_to="values") %>% 
+  mutate(SEX = case_when(SEX == "F" ~ "Female", SEX == "M" ~ "Male")) %>% 
+  mutate(category = case_when(category == "n" ~ "N",
+                              category == "med" ~ "Median", 
+                              category == "mean" ~ "Mean", 
+                              category == "sd" ~ "Std Dev", 
+                              category == "range_minmax" ~ "Range(min,max)")) %>%   pivot_wider(names_from=c("TRTA","SEX"), values_from="values")
+
+advs_age_stat
+
+```
+
 
 using the "Extract function" in RStudio IDE's "Code" menu. You can then tidy this code to change the function arguments. You then want to abstract the code so that the user running the code has the ability to change the things that they need to change. This abstraction means that writing the code is a little more complex within the tidyverse - you need to refer to the variable within a dataset, and stop R from trying to find that variable as an object in your environment (top right tab in RStudio IDE).
 
@@ -254,7 +340,7 @@ varSummary <- function(.data, variable) {
               n = n())
 }
 
-adsl_saf %>%
+adsl_eff %>%
   varSummary(AGE)
 ```
 
@@ -272,6 +358,6 @@ varSummary <- function(.data = NULL, variable = NULL) {
               n = n())
 }
 
-adsl_saf %>%
+adsl_eff %>%
   varSummary(AGE)
 ```
