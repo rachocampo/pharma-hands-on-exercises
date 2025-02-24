@@ -177,12 +177,12 @@ myData %>%
 ```{r summary stats}
 age_stat<- adsl_eff %>%
   group_by(TRT01AN,TRT01A,SEX) %>%
-  summarize(mean = mean(AGE) %>% round(digits = 1) %>% format(nsmall=1)  ,
-            sd = sd(AGE) %>% round(digits = 1) %>% format(nsmall = 1), 
-            med = median(AGE) %>% round (digits=1) %>% format(nsmall=1),              
+  summarize(mean = mean(AGE) %>% round(digits=1) %>% format(nsmall=1)  ,
+            sd = sd(AGE) %>% round(digits=1) %>% format(nsmall=1), 
+            med = median(AGE) %>% round(digits=1) %>% format(nsmall=1),        
             min = min(AGE) %>% format(nsmall=1), 
             max = max(AGE) %>% format(nsmall=1),
-           n = n()%>% format(nsmall=0))
+            n = n()%>% format(nsmall=0))
 age_stat2<-age_stat %>%
   mutate(range_minmax= paste0("(",min, ",", max, ")"))
 ```
@@ -195,13 +195,14 @@ desc_stat_long <- age_stat2 %>%
   select("TRT01A","SEX", "n", "mean", "med", "sd", "range_minmax") %>% 
   mutate(across(where(is.numeric), .fns = as.character)) %>%
   pivot_longer(-c("TRT01A","SEX"), names_to ="category", values_to = "values" )
+
 agestat_cat <- desc_stat_long %>%
   pivot_wider(names_from = c(TRT01A, SEX), values_from = values) %>%
   mutate(category = case_when(category == "n" ~ "N",
-                            category == "med" ~ "Median", 
+                              category == "med" ~ "Median", 
                               category == "mean" ~ "Mean", 
-                             category == "sd" ~ "Std Dev", 
-                             category == "range_minmax" ~ "Range(min,max)"))
+                              category == "sd" ~ "Std Dev", 
+                              category == "range_minmax" ~ "Range(min,max)"))
 agestat_cat
 ```
 
@@ -223,9 +224,129 @@ dm_allcomb
 ## Challenges: Take the following actions to match with the Demographic table.
 
 1.  Reorder the age variables to be in the correct order (<65, 65-80, >80)
+```{r}
+age_cat <- age_cat %>%
+  dplyr::mutate(category = factor(category, levels = c("<65", "65-80", ">80")))
+age_cat %>%
+  arrange(age_cat)
+```
+
 
 2.  Move N before Age- categories.
+```{r}
+dm_allcomb2 <- bind_rows(agestat_cat[1,], 
+               age_cat %>% arrange(age_cat), 
+               agestat_cat[2:5,])  
+dm_allcomb2
+```
 
 3.  Add Ethnicity and Race.
+```{r}
+Race_N_cnt <- adsl_eff %>%
+  group_by(TRT01AN, TRT01A, RACE) %>%
+  count(name = "race_total")
+
+race_n_cnt <- adsl_eff %>%
+  group_by(TRT01AN, TRT01A, SEX, RACE) %>%
+  count(name = "race_n")
+
+race_mrg_cnt <- race_n_cnt %>% 
+  left_join(Race_N_cnt, 
+            by = c("TRT01AN", "TRT01A", "RACE"))
+
+race_mrg_cnt2 <- race_mrg_cnt %>% 
+  left_join(Big_N_cnt, 
+            by = c("TRT01AN", "TRT01A"))
+
+race_mrg_cnt3 <- race_mrg_cnt2 %>% 
+  left_join(small_n_cnt, 
+            by = c("TRT01A", "TRT01AN", "SEX"))
+
+race_mrg_cnt3 <- ungroup(race_mrg_cnt3)
+
+race_data_new <- race_mrg_cnt3 %>% 
+  mutate(perc_tot = round((race_total/N)*100, 1)) %>%                 
+  mutate(perc_race = round((race_n/n)*100,1))
+
+race_pct <- race_data_new %>%
+  mutate(perc_tchar = format(perc_tot, nsmall = 1)) %>%
+  mutate(perc_rchar = format(perc_race, nsmall = 1))
+
+race_n_pct <- race_pct %>%
+  mutate(npct = paste(race_n, paste0("(", perc_rchar, ")"))) %>% 
+  select(RACE, TRT01A, SEX, npct)
+
+Race_trans <- pivot_wider(race_n_pct, 
+                         names_from = c(TRT01A,SEX), 
+                         values_from = npct, 
+                         values_fill = "0",
+                         names_sep = "_")
+
+race_cat <- rename(Race_trans, category=RACE)
+
+race_cat %>%
+  arrange(category)
+```
+
+```{r}
+Ethnic_N_cnt <- adsl_eff %>%
+  group_by(TRT01AN, TRT01A, ETHNIC) %>%
+  count(name = "ethnic_total")
+
+ethnic_n_cnt <- adsl_eff %>%
+  group_by(TRT01AN, TRT01A, SEX, ETHNIC) %>%
+  count(name = "ethnic_n")
+
+ethnic_mrg_cnt <- ethnic_n_cnt %>% 
+  left_join(Ethnic_N_cnt, 
+            by = c("TRT01AN", "TRT01A", "ETHNIC"))
+
+ethnic_mrg_cnt2 <- ethnic_mrg_cnt %>% 
+  left_join(Big_N_cnt, 
+            by = c("TRT01AN", "TRT01A"))
+
+ethnic_mrg_cnt3 <- ethnic_mrg_cnt2 %>% 
+  left_join(small_n_cnt, 
+            by = c("TRT01A", "TRT01AN", "SEX"))
+
+ethnic_mrg_cnt3 <- ungroup(ethnic_mrg_cnt3)
+
+ethnic_data_new <- ethnic_mrg_cnt3 %>% 
+  mutate(perc_tot = round((ethnic_total/N)*100, 1)) %>%                 
+  mutate(perc_ethnic = round((ethnic_n/n)*100,1))
+
+ethnic_pct <- ethnic_data_new %>%
+  mutate(perc_tchar = format(perc_tot, nsmall = 1)) %>%
+  mutate(perc_echar = format(perc_ethnic, nsmall = 1))
+
+ethnic_n_pct <- ethnic_pct %>%
+  mutate(npct = paste(ethnic_n, paste0("(", perc_echar, ")"))) %>% 
+  select(ETHNIC, TRT01A, SEX, npct)
+
+ethnic_trans <- pivot_wider(ethnic_n_pct, 
+                         names_from = c(TRT01A,SEX), 
+                         values_from = npct, 
+                         values_fill = "0",
+                         names_sep = "_")
+
+ethnic_cat <- rename(ethnic_trans, category=ETHNIC)
+
+ethnic_cat %>%
+  arrange(category)
+```
+
+```{r}
+dm_allcomb3 <- rbind(dm_allcomb2[1,], 
+                     "",  
+                     dm_allcomb2[2:8,],
+                     "",
+                     race_cat %>% arrange(category), 
+                     "",
+                     ethnic_cat %>% arrange(category))  
+dm_allcomb3[2,1] <- "Age Category, n (%)"
+dm_allcomb3[10,1] <- "Race, n (%)"
+dm_allcomb3[14,1] <- "Ethnicity, n (%)"
+dm_allcomb3
+```
 
 Save the .RMD file on your desktop and click on the "Knit" button at the top of the file to render an HTML version of this document.
