@@ -95,8 +95,12 @@ In Step 4 above, we defined a `group` mapping to show data for each level of `TR
 
 ```{r}
 plot1 <- PR %>%
-  ggplot(data = PR, mapping = aes(x=ADY, y=AVAL, group =  )) +
-  geom_line()
+  ggplot(data = PR, mapping = aes(x=ADY, y=AVAL, group=USUBJID, colour=TRTA, shape=TRTA)) +
+  geom_line() + labs(title = "Plot Title",
+       subtitle = "Plot subtitle",
+       x = "X-axis label",
+       y = "Y-axis label",
+       caption = paste("Plot created on:",Sys.Date()))
 
 plot1
 ```
@@ -109,10 +113,10 @@ Change the text in the `labs()` statement below to make sensible titles and axes
 
 ```{r}
 plot2 <- plot1 + 
-  labs(title = "Plot Title",
-       subtitle = "Plot subtitle",
-       x = "X-axis label",
-       y = "Y-axis label",
+  labs(title = "Individual Profile Plot of Participants",
+       subtitle = "Domain: Vital Signs",
+       x = "Analysis Day",
+       y = "Pulse Rate",
        caption = paste("Plot created on:",Sys.Date()))
 plot2
 ```
@@ -166,7 +170,7 @@ So how do we go back to one showing medians calculate across ALL subjects?
 
 ```{r}
 plot3 +
-  stat_summary(mapping = aes(group = NULL), fn = median, colour = "red")
+  stat_summary(mapping = aes(group = NULL), fun = median, colour = "red")
 ```
 
 Not all subjects have been assessed for vital signs on the same day of the treatment period. Let's look at the same plot as above, but using the calculated variable `StudyWeek`.
@@ -197,10 +201,7 @@ Now we might want to superimpose these medians onto the spaghetti plots above. B
 ```{r}
 plot3 + 
   stat_summary(data = dataWeeks,
-    mapping = aes(x = ADY,
-                             group = NULL), 
-               fun = median, 
-               colour = "red")
+    mapping = aes(x = ADY, group = NULL), fun = median, colour = "red")
 
 ```
 
@@ -279,7 +280,6 @@ groupLab <- quo_name(SysBP_plot$mapping$group)
 study <- uniqueVal(SysBP_plot$data$STUDYID)
 measure <- uniqueVal(SysBP_plot$data$PARAM)
 
-
 xLab <- ifelse(xLab == "ADY", "Analysis Relative Day", xLab)
 groupLab <- case_when(groupLab == "USUBJID" ~ "Subject", 
                       groupLab == "TRTA" ~ "Treatment",
@@ -296,6 +296,58 @@ SysBP_plot +
 
 Do the same for Diastolic BP and Temperature. Ensure that the axes labels match the type of data used.\
 Update `plot4` for the new endpoint.
+```{r}
+DiaBP <- ADVS  %>%
+  filter(PARAMN == 2) %>%
+  filter(VISITNUM > 3) 
+
+DiaBP_plot <- plot4 %+%
+  DiaBP
+
+xLab <- quo_name(DiaBP_plot$mapping$x)
+yLab <- quo_name(DiaBP_plot$mapping$y)
+groupLab <- quo_name(DiaBP_plot$mapping$group)
+
+study <- uniqueVal(DiaBP_plot$data$STUDYID)
+measure <- uniqueVal(DiaBP_plot$data$PARAM)
+
+xLab <- ifelse(xLab == "ADY", "Analysis Relative Day", xLab)
+groupLab <- case_when(groupLab == "USUBJID" ~ "Subject", 
+                      groupLab == "TRTA" ~ "Treatment",
+                      TRUE ~ groupLab)
+
+DiaBP_plot + 
+  labs(title = glue::glue("Study {study}"),
+       subtitle = glue::glue("Plot of {measure} by {groupLab}"),
+       x = xLab,
+       y = glue::glue("{measure}"))
+```
+```{r}
+Temp <- ADVS  %>%
+  filter(PARAMN == 6 ) %>%
+  filter(VISITNUM > 3) 
+
+Temp_plot <- plot4 %+%
+  Temp
+
+xLab <- quo_name(Temp_plot$mapping$x)
+yLab <- quo_name(Temp_plot$mapping$y)
+groupLab <- quo_name(Temp_plot$mapping$group)
+
+study <- uniqueVal(Temp_plot$data$STUDYID)
+measure <- uniqueVal(Temp_plot$data$PARAM)
+
+xLab <- ifelse(xLab == "ADY", "Analysis Relative Day", xLab)
+groupLab <- case_when(groupLab == "USUBJID" ~ "Subject", 
+                      groupLab == "TRTA" ~ "Treatment",
+                      TRUE ~ groupLab)
+
+Temp_plot + 
+  labs(title = glue::glue("Study {study}"),
+       subtitle = glue::glue("Plot of {measure} by {groupLab}"),
+       x = xLab,
+       y = glue::glue("{measure}"))
+```
 
 ## Extra challenge
 
