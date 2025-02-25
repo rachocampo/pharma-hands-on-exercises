@@ -85,7 +85,7 @@ The predicate used in `gghighlight` here checks whether each subject has *any* v
 library(gghighlight)
 
 plot1c <- plot1b +
-  gghighlight::gghighlight(any(LBNRIND = "")) 
+  gghighlight::gghighlight(any(LBNRIND == "")) 
 
 plot1c
 ```
@@ -95,7 +95,7 @@ In order to use facetting with `gghighlight` you need to set the argument `calcu
 ```{r}
 plot1d <- plot1b  +
   facet_wrap( ~ TRTP) + 
-  gghighlight::gghighlight(any(LBNRIND = ""), 
+  gghighlight::gghighlight(any(LBNRIND == ""), 
                            calculate_per_facet = TRUE) 
 plot1d
 ```
@@ -118,9 +118,9 @@ Now let's add data on top of the boxplots. We can do this quite easily using `ge
 ```{r}
 ALT2 %>%
   filter(WEEK %in% c(0, 5, 10, 15, 20, 25, 30)) %>%
-  ggplot( ) +
-  geom_boxplot( ) +
-  geom_point( )
+  ggplot(mapping = aes(x = as.factor(WEEK), y = LBSTRESN)) +
+  geom_boxplot() +
+  geom_point()
 ```
 
 It might be more useful to spread out the points a little so that we can see individual points. We do this using `geom_jitter`. We can also apply the `alpha` setting to the points to add transparency so we can see the boxplots beneath. The `width` option in `geom_jitter` controls the horizontal jittering of the points. Smaller values will cluster them closer to the middle of the boxplot. The default is to use the full width of the boxplot. Note that in `geom_boxplot` we set the argument `outlier.shape = NA` which will "turn off" showing the outliers, since in this case we show them via `geom_jitter` we don't need to show them in the boxplot ***as well***.
@@ -128,7 +128,7 @@ It might be more useful to spread out the points a little so that we can see ind
 ```{r}
 plot2b <- ALT2 %>%
   filter( ) %>%
-  ggplot(mapping = aes(x = , y = )) +
+  ggplot(mapping = aes(x = as.factor(WEEK), y =LBSTRESN)) +
   geom_boxplot(  ) +
   geom_jitter(alpha = 0.2, width = 0.1)
 
@@ -182,7 +182,7 @@ Use the "Data visualization with ggplot2" Cheat Sheet (from the Help menu in RSt
 ```{r}
 ALT2 %>%
   ggplot() +
-  geom_bar(mapping = aes( ))
+  geom_bar(mapping = aes(x=as.factor(WEEK), colour=LBNRIND))
 ```
 
 Most individuals have Lab measurements on weeks 2, 4, 6, 8, 16, 24, 26. Let's filter the data to show JUST those weeks.
@@ -224,16 +224,29 @@ plot3b
 As we did in the last mini project, we can now take plots `plot1b` and `plot2b` and apply labels to tidy up axes labels using the `labs` function.
 
 ```{r}
+
+xlabel <- quo_name(plot1b$mapping$x)
+ylabel <- quo_name(plot1b$mapping$y)
+
 plot1e <- plot1b +
-  labs(x =  ,
-       y =   )
+  labs(x =  ifelse(xlabel=="ADY","Analysis Relative Day", xlabel),
+       y =  ifelse(ylabel=="LBSTRESN","Numeric lab results in std units", ylabel))
 
+plot1e
+
+library(labelled)
+
+plot2b$mapping
 plot2c <- plot2b +
-  labs(x =  , y =   )
+  labs(x = var_label(ALT2[['WEEK']]), 
+       y = var_label(ALT2[['LBSTRESN']]))
+plot2c
 
+plot3b$mapping
 plot3c <- plot3b +
-  labs(x =  ,
-       y =  )
+  labs(x = "Week" ,
+       y = "Count")
+plot3c
 ```
 
 ## 7. Using `{patchwork}`
@@ -262,8 +275,8 @@ You can then use these combined plots as one object, provide a title for the com
 
 ```{r}
 p2b <- p2 + plot_annotation(
-  title =  ,
-  subtitle =  ,
+  title = ,
+  subtitle = ,
   tag_levels="a", tag_suffix = ")")
 
 p2b
@@ -289,7 +302,37 @@ Using what you've learned in this Mini Project 6, please try to create a graph s
 ```{r, echo=FALSE}
 knitr::include_graphics(path = "img/MiniProject6_challenge.png")
 ```
-
+```{r}
+RMP6 <- ALT2 %>% 
+  filter(WEEK %in% c(0, 1, 2, 4, 8, 16)) %>% 
+  ggplot(mapping=aes(x=LBSTRESN, y=as.factor(WEEK), xmin=uniqueVal(ALT2[['LBSTRESN']][1]))) + 
+  coord_cartesian(xlim=c(0, 150)) +
+  stat_dotsinterval(slab_alpha=0) +
+  geom_point(data=filter(ALT2, LBNRIND %in% c("LOW", "HIGH") & WEEK %in% c(0, 1, 2, 4, 8, 16)), aes(colour="red")) +
+  labs(x = 'Alanine Aminotransferase U/L',
+       y = 'Week') +
+  theme_gray() +
+  theme(legend.position="none") +
+  draw_label("DRAFT", x=75, y=3, color = "grey", alpha=0.3, size = 50, angle=45, hjust = 0.5, vjust = 0.5) 
+RMP6
+```
+```{r}
+RMP6 <- ALT2 %>% 
+  filter(WEEK %in% c(0, 1, 2, 4, 8, 16) & LBNRIND %in% c("LOW", "HIGH"))
+ 
+RMP6plot <- ALT2 %>%
+  filter(WEEK %in% c(0, 1, 2, 4, 8, 16)) %>% 
+  ggplot(mapping=aes(x=LBSTRESN, y=as.factor(WEEK))) + 
+  coord_cartesian(xlim=c(0, 150)) +
+  stat_dotsinterval(slab_alpha=0) +
+  geom_point(data=RMP6, aes(colour="red")) +
+  labs(x = 'Alanine Aminotransferase U/L',
+       y = 'Week') +
+  theme_gray() +
+  theme(legend.position="none") +
+  draw_label("DRAFT", x=75, y=3, color = "grey", alpha=0.3, size = 50, angle=45, hjust = 0.5, vjust = 0.5) 
+RMP6plot
+```
 ```{r}
 sessioninfo::session_info()
 ```
