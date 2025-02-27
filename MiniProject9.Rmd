@@ -7,7 +7,7 @@ output: html_document
 
 ```{r packages}
 #install.packages("reprex") 
-library(reprex)
+library(reprex) 
 library(tidyverse)
 library(rio)
 ```
@@ -347,7 +347,26 @@ BICARB <- adlb %>%
     filter(PARAMCD == "BASO")
 
 
-ggplot(data = BICARB,
-       mapping = aes(x = ADY, y = AVAL)) +
+plot1 <- ggplot(data = BICARB, mapping = aes(x = ADY, y = AVAL)) +
   geom_point(aes(colour = "THERAPY1"))
+```
+
+```{r}
+library(tidyverse)
+library(haven)
+
+Data1 <- tribble(
+  ~ADY, ~AVAL,
+  -7, 0.05,
+  15, 0.03,
+  29, 0.02,
+  42, 0.04,
+  63, 0.05,
+  84, 0.04,
+  126, 0.03,
+)
+
+plot2 <- ggplot(data = Data1, mapping = aes(x = ADY, y = AVAL)) +
+  geom_point(aes(colour = "THERAPY1"))
+plot2
 ```
