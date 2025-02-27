@@ -273,7 +273,62 @@ adsl <- import(inFile)
 
 adsl_counts(dataFile = adsl)
 ```
+```{r, eval=FALSE}
+library(rio)
+library(tidyverse)
+
+inFile <- "https://github.com/phuse-org/phuse-scripts/raw/master/data/adam/cdisc/adsl.xpt"
+adsl <- import(inFile)
+
+debugonce(adsl_counts)
+adsl_counts(dataFile = adsl)
+
+#error in deriving perc caused by summarise(name = "n") line in deriving the small_n_cnt dataset
+```
 
 ## Extra Credit
 
 What would you need to do to fix the code above?
+```{r, eval=FALSE}
+#to fix: change summarise(name = "n") to count(name="n") or summarise(n=n())
+
+adsl_counts <- function(dataFile) {
+  
+ adsl_saf <- dataFile %>%
+    filter(SAFFL == "Y")
+  
+  Big_N_cnt <-  adsl_saf %>%
+    group_by( TRT01AN, TRT01A  ) %>%
+    summarise(N = n())
+
+  small_n_cnt <- adsl_saf %>%
+    group_by( TRT01AN, TRT01A,  SEX ) %>%
+    count(name = "n")
+
+  adsl_mrg_cnt <- small_n_cnt %>%
+    left_join(Big_N_cnt, by = c("TRT01AN","TRT01A")) %>%
+    mutate(perc = round((n/N)*100, digits=1)) %>%
+    mutate(perc_char = format(perc, nsmall=1)) %>%
+    mutate(npct = paste(n, 
+                        paste0( "(", perc_char, ")" ) 
+                        ) 
+           ) %>%
+    mutate(SEX = recode(SEX, 
+                        "M" = "Male",
+                        "F" = "Female")) %>%
+    ungroup() %>%
+    select(TRT01A, SEX, npct) %>%
+    pivot_wider(names_from = TRT01A, values_from = npct) 
+  
+  return(adsl_mrg_cnt)
+}
+
+library(rio)
+library(tidyverse)
+
+inFile <- "https://github.com/phuse-org/phuse-scripts/raw/master/data/adam/cdisc/adsl.xpt"
+
+adsl <- import(inFile)
+
+adsl_counts(dataFile = adsl)
+```
