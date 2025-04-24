@@ -95,7 +95,8 @@ mutate(perc = round((n/N)*100, digits=1), perc_char = format(perc, nsmall=1), np
                         paste0( "(", perc_char, ")" ) 
                         ) 
            ) %>%
-mutate(SEX = recode(SEX, "M" = "Male", "F" = "Female")) %>% ungroup() %>% select(TRT01A, SEX, npct) %>% pivot_wider(names_from = TRT01A, values_from = npct)
+#mutate(SEX = recode(SEX, "M" = "Male", "F" = "Female")) %>%
+  ungroup() %>% select(TRT01A, RACE, npct) %>% pivot_wider(names_from = TRT01A, values_from = npct)
   
   adsl_mrg_cnt
 ```
@@ -106,7 +107,80 @@ the code you want to reformat in the RStudio IDE and then using the Code menu
 item "Reindent code" or shortcut CTRL+I. Copy the code above into the chunk below and try the RStudio IDE "Reindent" option...
 
 ```{r}
+library(rio)
+library(tidyverse)
+library(gt)
+library(readr)
 
+## Code by Mike K Smith
+## Original October 2023
+## Last modified December 2022
+## This code will calculate the demography summary by treatment and SEX. This code assumes that "M"="MALE" and "F"="FEMALE".
+
+adsl_saf = import("https://github.com/phuse-org/phuse-scripts/raw/master/data/adam/cdisc/adsl.xpt") %>% filter(SAFFL == "Y")
+
+BIGNcnt=  adsl_saf   %>%
+  group_by(   TRT01AN,TRT01A  ) %>%
+  count(name="N")
+
+## Calculating count for each category of SEX
+
+small_n_cnt=adsl_saf  %>%
+  group_by( TRT01AN, TRT01A,  SEX ) %>%
+  count(name = "n")
+small_n_cnt
+
+adsl_mrg_cnt<-small_n_cnt %>%
+  left_join(BIGNcnt, by = c("TRT01A", "TRT01AN")) %>%
+  mutate(perc = round((n/N)*100, digits=1), perc_char = format(perc, nsmall=1), npct = paste(n, 
+                                                                                             paste0( "(", perc_char, ")" ) 
+  ) 
+  ) %>%
+  mutate(SEX = recode(SEX, "M" = "Male", "F" = "Female")) %>% ungroup() %>% select(TRT01A, SEX, npct) %>% pivot_wider(names_from=TRT01A,values_from=npct)
+
+adsl_mrg_cnt
+
+BIGNcnt =  adsl_saf   %>%
+  group_by( TRT01AN, TRT01A  ) %>%
+  count(name = "N")
+
+## Calculating count for each category of SEX
+
+small_n_cnt = adsl_saf  %>%
+  group_by( TRT01AN, TRT01A,  AGEGR1 ) %>%
+  count(name = "n")
+small_n_cnt
+
+adsl_mgr_cnt <- small_n_cnt %>%
+  left_join(BIGNcnt, by = c("TRT01A", "TRT01AN")) %>%
+  mutate(perc = round((n/N)*100, digits=1), perc_char = format(perc, nsmall=1), npct = paste(n, 
+                                                                                             paste0( "(", perc_char, ")" ) 
+  ) 
+  ) %>% ungroup() %>% select(TRT01A, AGEGR1, npct) %>% pivot_wider(names_from = TRT01A, values_from = npct)
+
+adsl_mgr_cnt
+
+BIGNcnt =  adsl_saf   %>%
+  group_by( TRT01AN, TRT01A  ) %>%
+  count(name = "N")
+
+## Calculating count for each category of SEX
+
+small_n_cnt = adsl_saf  %>%
+  group_by( TRT01AN, TRT01A,  RACE ) %>%
+  count(name = "n")
+small_n_cnt
+
+adsl_mrg_cnt <- small_n_cnt %>%
+  left_join(BIGNcnt, by = c("TRT01A", "TRT01AN")) %>%
+  mutate(perc = round((n/N)*100, digits=1), perc_char = format(perc, nsmall=1), npct = paste(n, 
+                                                                                             paste0( "(", perc_char, ")" ) 
+  ) 
+  ) %>%
+  #  mutate(SEX = recode(SEX, "M" = "Male", "F" = "Female")) %>% 
+  ungroup() %>% select(TRT01A, RACE, npct) %>% pivot_wider(names_from = TRT01A, values_from = npct)
+
+adsl_mrg_cnt
 ```
 
 ## Reformatting = RStudio IDE shortctu CTRL+SHIFT+A
@@ -115,7 +189,86 @@ reformat or reflow lines of your code. Note that this doesn't COMPLETELY reforma
 problems in the code below, but it's BETTER. Copy the code above into the chunk below and try the RStudio IDE "Reformat" option...
 
 ```{r}
+library(rio)
+library(tidyverse)
+library(gt)
+library(readr)
 
+## Code by Mike K Smith
+## Original October 2023
+## Last modified December 2022
+## This code will calculate the demography summary by treatment and SEX. This code assumes that "M"="MALE" and "F"="FEMALE".
+
+adsl_saf = import(
+  "https://github.com/phuse-org/phuse-scripts/raw/master/data/adam/cdisc/adsl.xpt"
+) %>% filter(SAFFL == "Y")
+
+BIGNcnt =  adsl_saf   %>%
+  group_by(TRT01AN, TRT01A) %>%
+  count(name = "N")
+
+## Calculating count for each category of SEX
+
+small_n_cnt = adsl_saf  %>%
+  group_by(TRT01AN, TRT01A, SEX) %>%
+  count(name = "n")
+small_n_cnt
+
+adsl_mrg_cnt <- small_n_cnt %>%
+  left_join(BIGNcnt, by = c("TRT01A", "TRT01AN")) %>%
+  mutate(
+    perc = round((n / N) * 100, digits = 1),
+    perc_char = format(perc, nsmall = 1),
+    npct = paste(n, paste0("(", perc_char, ")"))
+  ) %>%
+  mutate(SEX = recode(SEX, "M" = "Male", "F" = "Female")) %>% ungroup() %>% select(TRT01A, SEX, npct) %>% pivot_wider(names_from =
+                                                                                                                        TRT01A, values_from = npct)
+
+adsl_mrg_cnt
+
+BIGNcnt =  adsl_saf   %>%
+  group_by(TRT01AN, TRT01A) %>%
+  count(name = "N")
+
+## Calculating count for each category of SEX
+
+small_n_cnt = adsl_saf  %>%
+  group_by(TRT01AN, TRT01A, AGEGR1) %>%
+  count(name = "n")
+small_n_cnt
+
+adsl_mgr_cnt <- small_n_cnt %>%
+  left_join(BIGNcnt, by = c("TRT01A", "TRT01AN")) %>%
+  mutate(
+    perc = round((n / N) * 100, digits = 1),
+    perc_char = format(perc, nsmall = 1),
+    npct = paste(n, paste0("(", perc_char, ")"))
+  ) %>% ungroup() %>% select(TRT01A, AGEGR1, npct) %>% pivot_wider(names_from = TRT01A, values_from = npct)
+
+adsl_mgr_cnt
+
+BIGNcnt =  adsl_saf   %>%
+  group_by(TRT01AN, TRT01A) %>%
+  count(name = "N")
+
+## Calculating count for each category of SEX
+
+small_n_cnt = adsl_saf  %>%
+  group_by(TRT01AN, TRT01A, RACE) %>%
+  count(name = "n")
+small_n_cnt
+
+adsl_mrg_cnt <- small_n_cnt %>%
+  left_join(BIGNcnt, by = c("TRT01A", "TRT01AN")) %>%
+  mutate(
+    perc = round((n / N) * 100, digits = 1),
+    perc_char = format(perc, nsmall = 1),
+    npct = paste(n, paste0("(", perc_char, ")"))
+  ) %>%
+  #mutate(SEX = recode(SEX, "M" = "Male", "F" = "Female")) %>%
+  ungroup() %>% select(TRT01A, RACE, npct) %>% pivot_wider(names_from = TRT01A, values_from = npct)
+
+adsl_mrg_cnt
 ```
 
 ## Specific style issues - BE CONSISTENT
@@ -162,7 +315,84 @@ Every time you load a library you also load its dependencies. Why load a package
 Copy the original code into the chunk below and try to tidy it up.
 
 ```{r}
+library(rio)
+library(tidyverse)
+library(gt)
+library(readr)
 
+## Code by Mike K Smith
+## Original October 2023
+## Last modified December 2022
+## This code will calculate the demography summary by treatment and SEX. This code assumes that "M"="MALE" and "F"="FEMALE".
+
+adsl_saf <- import("https://github.com/phuse-org/phuse-scripts/raw/master/data/adam/cdisc/adsl.xpt") %>% 
+  filter(SAFFL == "Y")
+
+Big_N_Cnt <-  adsl_saf   %>%
+  group_by(TRT01AN, TRT01A) %>%
+  count(name = "N")
+
+## Calculating count for each category of SEX
+
+small_n_cnt <- adsl_saf  %>%
+  group_by(TRT01AN, TRT01A, SEX) %>%
+  count(name = "n")
+small_n_cnt
+
+adsl_mrg_cnt <- small_n_cnt %>%
+  left_join(Big_N_Cnt, by = c("TRT01A", "TRT01AN")) %>%
+  mutate(perc = round((n / N) * 100, digits = 1),
+         perc_char = format(perc, nsmall = 1),
+         npct = paste(n, paste0("(", perc_char, ")"))) %>%
+  mutate(SEX = recode(SEX, 
+                      "M" = "Male", 
+                      "F" = "Female")) %>% 
+  ungroup() %>% 
+  select(TRT01A, SEX, npct) %>% 
+  pivot_wider(names_from = TRT01A, values_from = npct)
+adsl_mrg_cnt
+
+Big_N_Cnt <-  adsl_saf %>%
+  group_by(TRT01AN, TRT01A) %>%
+  count(name = "N")
+
+## Calculating count for each category of AGEGR1
+
+small_n_cnt <- adsl_saf  %>%
+  group_by(TRT01AN, TRT01A, AGEGR1) %>%
+  count(name = "n")
+small_n_cnt
+
+adsl_mrg_cnt <- small_n_cnt %>%
+  left_join(Big_N_Cnt, by = c("TRT01A", "TRT01AN")) %>%
+  mutate(perc = round((n / N) * 100, digits = 1),
+         perc_char = format(perc, nsmall = 1),
+         npct = paste(n, paste0("(", perc_char, ")"))) %>% 
+  ungroup() %>% 
+  select(TRT01A, AGEGR1, npct) %>% 
+  pivot_wider(names_from = TRT01A, values_from = npct)
+adsl_mrg_cnt
+
+Big_N_Cnt <-  adsl_saf %>%
+  group_by(TRT01AN, TRT01A) %>%
+  count(name = "N")
+
+## Calculating count for each category of RACE
+
+small_n_cnt <- adsl_saf %>%
+  group_by(TRT01AN, TRT01A, RACE) %>%
+  count(name = "n")
+small_n_cnt
+
+adsl_mrg_cnt <- small_n_cnt %>%
+  left_join(Big_N_Cnt, by = c("TRT01A", "TRT01AN")) %>%
+  mutate(perc = round((n / N) * 100, digits = 1),
+         perc_char = format(perc, nsmall = 1),
+         npct = paste(n, paste0("(", perc_char, ")"))) %>% 
+  ungroup() %>% 
+  select(TRT01A, RACE, npct) %>% 
+  pivot_wider(names_from = TRT01A, values_from = npct)
+adsl_mrg_cnt
 ```
 
 ## Don't Repeat Yourself - DRY principle
@@ -172,6 +402,54 @@ Notice that we have three different code chunks that effectively do the same tas
 Note also that the code calculates the `BIGNcnt` three times. Which is just unnecessary. We now know about functions. So what could we do here? Copy and paste your tidied code above into the chunk below and try to resolve this issue using your experience at writing functions.
 
 ```{r}
+library(rio)
+library(tidyverse)
+library(gt)
+library(readr)
 
+## Code by Mike K Smith
+## Original October 2023
+## Last modified December 2022
+## This code will calculate the demography summary by treatment and SEX. This code assumes that "M"="MALE" and "F"="FEMALE".
+
+adsl_saf <- import("https://github.com/phuse-org/phuse-scripts/raw/master/data/adam/cdisc/adsl.xpt") %>% 
+  filter(SAFFL == "Y")
+
+Big_N_Cnt <-  adsl_saf   %>%
+  group_by(TRT01AN, TRT01A) %>%
+  count(name = "N")
+
+## Calculating count for each category of SEX
+
+small_n_cnt_fcn <- function(var){
+  small_n_cnt <- adsl_saf  %>%
+  group_by(TRT01AN, TRT01A, {{var}}) %>%
+  count(name = "n")
+  return(small_n_cnt)
+}
+
+adsl_mrg_cnt_fcn <- function(Big_N_Cnt, small_n_cnt, var){
+  adsl_mrg_cnt <- small_n_cnt %>%
+  left_join(Big_N_Cnt, by = c("TRT01A", "TRT01AN")) %>%
+  mutate(perc = round((n / N) * 100, digits = 1),
+    perc_char = format(perc, nsmall = 1),
+    npct = paste(n, paste0("(", perc_char, ")"))) %>% 
+    ungroup() %>% 
+    select(TRT01A, {{var}}, npct) %>% pivot_wider(names_from = TRT01A, values_from = npct)
+  return(adsl_mrg_cnt)
+}
+
+## Calculating count for each category of SEX
+small_n_cnt <- small_n_cnt_fcn(SEX)
+adsl_mrg_cnt_fcn(Big_N_Cnt, small_n_cnt, SEX) %>% 
+  mutate(SEX = recode(SEX, "M" = "Male", "F" = "Female"))
+
+## Calculating count for each category of AGEGR1
+small_n_cnt <- small_n_cnt_fcn(AGEGR1)
+adsl_mrg_cnt_fcn(Big_N_Cnt, small_n_cnt, AGEGR1)
+
+## Calculating count for each category of RACE
+small_n_cnt <- small_n_cnt_fcn(RACE)
+adsl_mrg_cnt_fcn(Big_N_Cnt, small_n_cnt, RACE)
 ```
 
