@@ -136,7 +136,7 @@ In the example above, we were able to collect multiple arguments in through `fil
 Fix the function using dynamic dots so that it works as expected (hint: we looked at this in Mini-Project 7). Make sure you understand what's going on before moving on.
 
 ```{r}
-mySummary <- function(myData){
+mySummary <- function(myData, ...){
   myData %>%
     group_by( TRT01AN, TRT01A ) %>%
     summarise(mean = round(mean(AGE) ))
@@ -170,13 +170,13 @@ Let's apply that operator again on the `mpg` dataset to get summary statistics b
 
 ```{r}
 grouped_mean <- function(df, group_var, summary_var) {
-  df %>% 
-    group_by( group_var ) %>% 
-    summarize(mean = mean( summary_var ) %>% round(digits = 0) %>% format(nsmall = 0)  ,
-              sd = sd( summary_var ) %>% round(digits = 1) %>% format(nsmall = 1), 
-              med = median( summary_var ) %>% round(digits = 0) %>% format(nsmall = 0) ,
-              min = min( summary_var ) %>% format(nsmall = 0), 
-              max = max( summary_var ) %>% format(nsmall = 0),
+  {{df}} %>% 
+    group_by( {{group_var}} ) %>% 
+    summarize(mean = mean( {{summary_var}} ) %>% round(digits = 0) %>% format(nsmall = 0)  ,
+              sd = sd( {{summary_var}} ) %>% round(digits = 1) %>% format(nsmall = 1), 
+              med = median( {{summary_var}} ) %>% round(digits = 0) %>% format(nsmall = 0) ,
+              min = min( {{summary_var}} ) %>% format(nsmall = 0), 
+              max = max( {{summary_var}} ) %>% format(nsmall = 0),
               n = n()) 
 }
 
@@ -262,7 +262,7 @@ Fix the following example from Mini-Project 4 to work by using the pair of funct
 ```{r}
 get_cat_demo <- function(.data = adsl_saf, variable = RACE) {
   # HINT: what character variable needs to be defined in this function?
-  var_char <- # complete this line here to solve this problem
+  var_char <- rlang::as_name(substitute(variable)) # complete this line here to solve this problem
   
   Big_N_cnt <- adsl_saf %>%
     group_by(TRT01AN, TRT01A) %>%
@@ -353,11 +353,11 @@ plot_ALT <- function(ALT, x_var, y_var, ...) {
     filter(WEEK %in% c(2, 4, 6, 8, 16, 24, 26))
   
   ALT2 %>%
-    ggplot(mapping = aes(x = x_var, y = as.factor( y_var ))) +
+    ggplot(mapping = aes(x = {{x_var}}, y = as.factor( {{y_var}} ))) +
     coord_cartesian(xlim=c(0, 150)) +
     ggdist::stat_dotsinterval(show_slab=FALSE) +
     geom_point(data = ALT2 %>% filter(LBNRIND %in% c("HIGH", "LOW")), 
-               mapping = aes(x = x_var, y = as.factor( y_var )), 
+               mapping = aes(x = {{x_var}}, y = as.factor( {{y_var}} )), 
                colour="red") +
     labs(   ) +
     cowplot::draw_label("DRAFT", color = "grey", 
